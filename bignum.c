@@ -5,6 +5,11 @@
 #include "bignum.h"
 
 /* utility */
+/*
+    Create a new node with digit d
+    This function allocates memory for a new Link node,
+    initializes its digit to d, and sets its prev and next pointers to NULL.
+*/
 static Link* node_new(int d) {
     Link* n = malloc(sizeof(Link));
     n->digit = d;
@@ -14,6 +19,9 @@ static Link* node_new(int d) {
 
 
 /* compare */
+// Returns -1 if A < B
+// Returns 0 if A == B
+// Returns 1 if A > B
 int bn_compare(const BigNum* A, const BigNum* B) {
     int lenA = 0;
     int lenB = 0;
@@ -60,6 +68,10 @@ int bn_compare(const BigNum* A, const BigNum* B) {
 }
 
 /* addition */
+/* Adds two BigNum numbers and returns the result as a new BigNum 
+    The addition is performed digit by digit, starting from the least significant digit (the tail of the list).
+    It handles carry-over when the sum of two digits exceeds 9.
+*/
 BigNum* bn_add(const BigNum* A, const BigNum* B) {
     // Create an empty bignum to store the result
     BigNum* result = malloc(sizeof(BigNum));
