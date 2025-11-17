@@ -215,7 +215,7 @@ BigNum* bn_sub(const BigNum* A, const BigNum* B) {
     return result;
 }
 
-/* multiply one digit with shift */
+
 /* multiply one digit with shift */
 static BigNum* bn_mul_single(const BigNum* A, int d, int shift) {
     // 0 multiplied by anything is 0
@@ -275,7 +275,7 @@ static BigNum* bn_mul_single(const BigNum* A, int d, int shift) {
     return result;
 }
 
-/* multiplication */
+
 /* multiplication */
 BigNum* bn_mul(const BigNum* A, const BigNum* B) {
     
@@ -329,4 +329,65 @@ void bn_free(BigNum* a) {
     
     // Finally, free the BigNum struct itself
     free(a);
+}
+
+
+
+BigNum* bn_from_string(const char* str){
+    BigNum* bn = malloc(sizeof(BigNum));
+    bn->head = NULL;
+    bn->tail = NULL;
+
+    size_t len = strlen(str);
+    for (size_t i = 0; i < len; i++) {
+        if (!isdigit((unsigned char)str[i])) {
+            // Invalid character found, free allocated memory and return NULL
+            bn_free(bn);
+            return NULL;
+        }
+        int digit = str[i] - '0';
+        Link* newNode = node_new(digit);
+
+        // Append to the tail
+        if (bn->head == NULL) {
+            bn->head = newNode;
+            bn->tail = newNode;
+        } else {
+            bn->tail->next = newNode;
+            newNode->prev = bn->tail;
+            bn->tail = newNode;
+        }
+    }
+
+    return bn;
+
+}
+
+
+char* bn_to_string(const BigNum* num){
+    // First, calculate the length of the resulting string
+    size_t length = 0;
+    Link* current = num->head;
+    while (current != NULL) {
+        length++;
+        current = current->next;
+    }
+
+    // Allocate memory for the string (+1 for null terminator)
+    char* str = malloc(length + 1);
+    if (str == NULL) {
+        return NULL; // Memory allocation failed
+    }
+
+    // Fill the string with digits
+    current = num->head;
+    size_t index = 0;
+    while (current != NULL) {
+        str[index++] = current->digit + '0'; // Convert digit to character
+        current = current->next;
+    }
+
+    str[index] = '\0'; // Null-terminate the string
+    return str;
+
 }
