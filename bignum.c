@@ -204,11 +204,117 @@ BigNum* bn_sub(const BigNum* A, const BigNum* B) {
 }
 
 /* multiply one digit with shift */
+/* multiply one digit with shift */
 static BigNum* bn_mul_single(const BigNum* A, int d, int shift) {
+    // 0 multiplied by anything is 0
+    if (d == 0) {
+        BigNum* result = malloc(sizeof(BigNum));
+        result->head = node_new(0);
+        result->tail = result->head;
+        return result;
+    }
 
+    BigNum* result = malloc(sizeof(BigNum));
+    result->head = NULL;
+    result->tail = NULL;
+    
+    Link* currA = A->tail;
+    int carry = 0;
+
+    // 1. Perform the multiplication (e.g., 123 * 4 = 492)
+    //    We iterate from the tail, just like in bn_add.
+    while (currA != NULL || carry != 0) {
+        int digitA = (currA != NULL) ? currA->digit : 0;
+        
+        int product = (digitA * d) + carry;
+        int newDigit = product % 10;
+        carry = product / 10;
+
+        Link* newNode = node_new(newDigit);
+        
+        // Add to head (builds the result in reverse: 2, then 9, then 4)
+        if (result->head == NULL) {
+            result->head = newNode;
+            result->tail = newNode;
+        } else {
+            newNode->next = result->head;
+            result->head->prev = newNode;
+            result->head = newNode;
+        }
+        
+        if (currA != NULL) currA = currA->prev;
+    }
+
+    // 2. Add 'shift' zeros to the tail (e.g., for 49200)
+    for (int i = 0; i < shift; i++) {
+        Link* zeroNode = node_new(0);
+        
+        // We must check if the list is [0]
+        if (result->head->digit == 0 && result->head->next == NULL) {
+             // Do nothing if the result is already 0
+        } else {
+            // Add the zero to the end of the list
+            result->tail->next = zeroNode;
+            zeroNode->prev = result->tail;
+            result->tail = zeroNode;
+        }
+    }
+    
+    return result;
 }
 
 /* multiplication */
+/* multiplication */
 BigNum* bn_mul(const BigNum* A, const BigNum* B) {
+    
+    // Create a BigNum to store the final sum, initialized to 0
+    BigNum* totalSum = malloc(sizeof(BigNum));
+    totalSum->head = node_new(0);
+    totalSum->tail = totalSum->head;
 
+    Link* currB = B->tail;
+    int shift = 0;
+
+    // Iterate through B's digits from right-to-left
+    while (currB != NULL) {
+        int digitB = currB->digit;
+        
+        // 1. Get the partial product for this digit
+        //    (e.g., A * 5, then A * 40, then A * 300, etc.)
+        BigNum* partialProduct = bn_mul_single(A, digitB, shift);
+        
+        // 2. Add the partial product to the total sum
+        BigNum* tempSum = bn_add(totalSum, partialProduct);
+        
+        // 3. Free the OLD totalSum and the partialProduct
+        //    This is critical for memory management [cite: 69]
+        bn_free(totalSum);
+        bn_free(partialProduct);
+        
+        // 4. The new totalSum is the one we just calculated
+        totalSum = tempSum;
+        
+        // 5. Increment shift for the next digit
+        shift++;
+        currB = currB->prev;
+    }
+    
+    return totalSum;
+}
+
+
+void bn_free(BigNum* a) {
+    if (a == NULL) {
+        return;
+    }
+
+    Link* current = a->head;
+    while (current != NULL) {
+        Link* temp = current; // Get the node to free
+        current = current->next; // Move to the next node
+        free(temp); // Free the old node
+    }
+    
+    // Finally, free the BigNum struct itself
+    free(a);
 }
