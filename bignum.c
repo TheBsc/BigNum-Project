@@ -124,7 +124,81 @@ BigNum* bn_add(const BigNum* A, const BigNum* B) {
 
 /* subtraction: returns 0 if A < B */
 BigNum* bn_sub(const BigNum* A, const BigNum* B) {
+    // יצירת מספר גדול ריק לאחסון התוצאה
+    BigNum* result = malloc(sizeof(BigNum));
+    result->head = NULL;
+    result->tail = NULL;
 
+    // הגדרת מצביעים.
+    // בדומה לחיבור, אנחנו מתחילים מהזנב (הספרה הפחות משמעותית)
+    Link* currentA = A->tail;
+    Link* currentB = B->tail;
+
+    int borrow = 0; // משתנה לשמירת "שאילה" (במקום carry)
+
+    // הלולאה רצה כל עוד יש ספרות ב-A.
+    // מכיוון ש A >= B, רשימה A תמיד תהיה ארוכה או שווה באורכה ל-B,
+    // ולכן מספיק לבדוק את currentA.
+    while (currentA != NULL) {
+
+        // קח את הספרה הנוכחית מ-A, והחל מיד את ה"שאילה" מהסיבוב הקודם
+        int digitA = currentA->digit - borrow;
+        
+        // קח את הספרה הנוכחית מ-B. אם הרשימה נגמרה, קח 0
+        int digitB = (currentB != NULL) ? currentB->digit : 0;
+
+        // אפס את ה"שאילה" הנוכחית, כי השתמשנו בה
+        borrow = 0;
+
+        // בדוק אם אנחנו צריכים "לשאול" מהספרה הבאה
+        if (digitA < digitB) {
+            digitA = digitA + 10; // הוסף 10 לספרה הנוכחית
+            borrow = 1;       // סמן שנצטרך לקחת 1 מהספרה הבאה (בסיבוב הבא)
+        }
+
+        // בצע את פעולת החיסור
+        int newDigit = digitA - digitB;
+
+        // יצירת צומת חדש עבור ספרת התוצאה
+        Link* newNode = node_new(newDigit);
+
+        // הוסף את הצומת החדש ל*ראש* רשימת התוצאה
+        // (בדיוק כמו בקוד החיבור, כדי לבנות את המספר בסדר הנכון)
+        if (result->head == NULL) {
+            // זה אומר שהרשימה ריקה
+            result->head = newNode;
+            result->tail = newNode;
+        } else {
+            // אם הרשימה אינה ריקה
+            // קשר את הצומת החדש לראש הרשימה הנוכחי
+            newNode->next = result->head;
+            // קשר את הראש הישן אחורה לצומת החדש
+            result->head->prev = newNode;
+            // עדכן את מצביע הראש של הרשימה לצומת החדש
+            result->head = newNode;
+        }
+
+        // קדם את המצביעים לצומת הקודם (שמאלה)
+        if (currentA != NULL) {
+            currentA = currentA->prev;
+        }
+
+        if (currentB != NULL) {
+            currentB = currentB->prev;
+        }
+    }
+
+    // --- טיפול באפסים מובילים ---
+    // קוד החיסור, בניגוד לחיבור, יכול ליצור אפסים מובילים (למשל 101 - 99 = 002)
+    // אנחנו צריכים להסיר אותם, אבל לשמור על 0 בודד אם התוצאה היא 0.
+    while (result->head != NULL && result->head->digit == 0 && result->head->next != NULL) {
+        Link* toFree = result->head;      // שמור מצביע לצומת ה-0 המוביל
+        result->head = result->head->next;  // קדם את הראש לצומת הבא
+        result->head->prev = NULL;          // נתק את הקישור "אחורה" של הראש החדש
+        free(toFree);                     // שחרר את ה-0 המוביל
+    }
+
+    return result;
 }
 
 /* multiply one digit with shift */
