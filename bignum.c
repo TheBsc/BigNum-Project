@@ -124,61 +124,63 @@ BigNum* bn_add(const BigNum* A, const BigNum* B) {
 
 /* subtraction: returns 0 if A < B */
 BigNum* bn_sub(const BigNum* A, const BigNum* B) {
-    // יצירת מספר גדול ריק לאחסון התוצאה
+    //create an empty bignum to store the result
     BigNum* result = malloc(sizeof(BigNum));
     result->head = NULL;
     result->tail = NULL;
 
-    // הגדרת מצביעים.
-    // בדומה לחיבור, אנחנו מתחילים מהזנב (הספרה הפחות משמעותית)
+    // set up pointers. 
+    // Because we might have borrow- We start at the tail
     Link* currentA = A->tail;
     Link* currentB = B->tail;
 
-    int borrow = 0; // משתנה לשמירת "שאילה" (במקום carry)
+    int borrow = 0; // no borrow at the begining
 
-    // הלולאה רצה כל עוד יש ספרות ב-A.
-    // מכיוון ש A >= B, רשימה A תמיד תהיה ארוכה או שווה באורכה ל-B,
-    // ולכן מספיק לבדוק את currentA.
+    // Loop while there are digits in A
+    // (we assume A >= B, so we don't need to check B's digits)
+    // Also, we don't need to check for borrow at the end,
+    // because if A >= B, we will never have a leftover borrow
+
+
     while (currentA != NULL) {
 
-        // קח את הספרה הנוכחית מ-A, והחל מיד את ה"שאילה" מהסיבוב הקודם
+        //subtract borrow from currentA digit
         int digitA = currentA->digit - borrow;
         
-        // קח את הספרה הנוכחית מ-B. אם הרשימה נגמרה, קח 0
+        // Get the current digit of B, or 0 if B is exhausted
         int digitB = (currentB != NULL) ? currentB->digit : 0;
 
-        // אפס את ה"שאילה" הנוכחית, כי השתמשנו בה
+        // reset
         borrow = 0;
 
-        // בדוק אם אנחנו צריכים "לשאול" מהספרה הבאה
+        // Check if we need to borrow
         if (digitA < digitB) {
-            digitA = digitA + 10; // הוסף 10 לספרה הנוכחית
-            borrow = 1;       // סמן שנצטרך לקחת 1 מהספרה הבאה (בסיבוב הבא)
+            digitA = digitA + 10; 
+            borrow = 1;       
         }
 
-        // בצע את פעולת החיסור
+        // subtraction
         int newDigit = digitA - digitB;
 
-        // יצירת צומת חדש עבור ספרת התוצאה
+        // Create a new node for the result digit
         Link* newNode = node_new(newDigit);
 
-        // הוסף את הצומת החדש ל*ראש* רשימת התוצאה
-        // (בדיוק כמו בקוד החיבור, כדי לבנות את המספר בסדר הנכון)
+        // Add the new node to the **HEAD** of the result list
+        // Because we are processing digits from least significant to most significant,
         if (result->head == NULL) {
-            // זה אומר שהרשימה ריקה
+            // empty list
             result->head = newNode;
             result->tail = newNode;
         } else {
-            // אם הרשימה אינה ריקה
-            // קשר את הצומת החדש לראש הרשימה הנוכחי
+            // connect the new node to the current head of the list
             newNode->next = result->head;
-            // קשר את הראש הישן אחורה לצומת החדש
+            // update the current head's prev to point back to the new node
             result->head->prev = newNode;
-            // עדכן את מצביע הראש של הרשימה לצומת החדש
+            // update the head pointer of the result list to the new node
             result->head = newNode;
         }
 
-        // קדם את המצביעים לצומת הקודם (שמאלה)
+        
         if (currentA != NULL) {
             currentA = currentA->prev;
         }
@@ -188,14 +190,14 @@ BigNum* bn_sub(const BigNum* A, const BigNum* B) {
         }
     }
 
-    // --- טיפול באפסים מובילים ---
-    // קוד החיסור, בניגוד לחיבור, יכול ליצור אפסים מובילים (למשל 101 - 99 = 002)
-    // אנחנו צריכים להסיר אותם, אבל לשמור על 0 בודד אם התוצאה היא 0.
+    // Remove leading zeros from the result 
+    // (but leave at least one digit if the result is zero)
+    // For example, if the result is 000123, we want to keep 123.
     while (result->head != NULL && result->head->digit == 0 && result->head->next != NULL) {
-        Link* toFree = result->head;      // שמור מצביע לצומת ה-0 המוביל
-        result->head = result->head->next;  // קדם את הראש לצומת הבא
-        result->head->prev = NULL;          // נתק את הקישור "אחורה" של הראש החדש
-        free(toFree);                     // שחרר את ה-0 המוביל
+        Link* toFree = result->head;      // define a pointer to the leading zero node
+        result->head = result->head->next;  // move the head pointer to the next node
+        result->head->prev = NULL;          // set the new head's prev to NULL
+        free(toFree);                     // free the old leading zero node
     }
 
     return result;
